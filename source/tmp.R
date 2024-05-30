@@ -1,6 +1,7 @@
 library(ggplot2)
 library(dplyr)
 library(lubridate)
+library(forcats)
 
 data <- read.csv('sales_data.csv')
 data
@@ -24,15 +25,33 @@ total_revenue <- sum(data$revenue)
 plot_data <- data.frame(total_revenue)
 
 euro <- scales::label_currency(
+  largest_with_fractional = 1000000,
+  accuracy = 2,
   prefix = '',
-  suffix = 'U+20AC',
+  suffix = '\U20AC',
   big.mark = '.',
   decimal.mark = ','
 )
 
-ggplot(plot_data, aes(x = 1, y = 1)) +
-  geom_text(aes(label = labels(total_revenue, )), 
-            size = 30, 
-            vjust = 0.5, 
-            hjust = 0.5) +
+grouped <- data %>%
+  group_by(category) %>%
+  summarise(rev = sum(revenue))
+
+grouped <- grouped[!is.na(grouped[, 1]), ]
+
+ggplot(grouped, aes(x = rev, y = fct_reorder(factor(category), rev, na.rm = F))) + geom_col()
+
+unique(grouped$category)
+
+world <- map_data('world')
+head(world)
+
+greece <- filter(world, region == 'Greece')
+ggplot(greece, aes(x = long, y = lat, group = group, fill = subregion)) + geom_polygon() + coord_quickmap()
+ggplot(world, aes(x = long, y = lat, group = group)) + 
+  geom_polygon() + 
+  coord_quickmap() +
   theme_void()
+
+by.country <- group_by(data, '')
+merge(world, data, by.x = 'region', by.y = 'country')
