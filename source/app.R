@@ -2,103 +2,58 @@ library(shiny)
 library(ggplot2)
 library(dplyr)
 library(DT)
-options(shiny.maxRequestSize=30*1024^2)
+
+data <- read.csv('sales_data.csv')
 
 ui <- navbarPage(
   'E-Commerce Dashboard App',
-  tabPanel('Data',
-           tabsetPanel(
-             tabPanel('Input',
-                        
-                        # Sidebar panel for inputs ----
-                        sidebarPanel(
-                          width = 3,
-                          
-                          # Input: Select a file ----
-                          fileInput("file1", "Choose CSV File",
-                                    multiple = FALSE,
-                                    accept = c("text/csv",
-                                               "text/comma-separated-values,text/plain",
-                                               ".csv")),
-                          
-                          # Horizontal line ----
-                          tags$hr(),
-                          
-                          # Input: Checkbox if file has header ----
-                          checkboxInput("header", "Header", TRUE),
-                          
-                          # Input: Select separator ----
-                          radioButtons("sep", "Separator",
-                                       choices = c(Comma = ",",
-                                                   Semicolon = ";",
-                                                   Tab = "\t"),
-                                       selected = ","),
-                          
-                          # Input: Select quotes ----
-                          radioButtons("quote", "Quote",
-                                       choices = c(None = "",
-                                                   "Double Quote" = '"',
-                                                   "Single Quote" = "'"),
-                                       selected = '"'),
-                          
-                        ),
-                        
-                        # Main panel for displaying outputs ----
-                        mainPanel(
-                          width = 9,
-                          
-                          # Output: Data file ----
-                          tableOutput("preview")
-                          
-                        )
-                      
-                    ),
-             
-             tabPanel('Data Table',
-                      DT::dataTableOutput('dataTable'))
-           )
-          ),
   
   tabPanel('Dashboard',
            
-           h1('Hello World'),
-           
-           plotOutput('plot')
+           fluidPage(
+             fluidRow(
+               column(plotOutput('plot1'), width = 4),
+               
+               column(plotOutput('plot2'), width = 5)
+             )
            )
+           
+           
+  ),
+  
+  tabPanel('Data',
+           
+           DT::dataTableOutput('dataTable')
+          )
   
 )
 
 server <- function(input, output, session) {
   
-  data = reactive({
-    req(input$file1)
-    
-    df <- read.csv(input$file1$datapath,
-                   header = input$header,
-                   sep = input$sep,
-                   quote = input$quote)
-    
-    return(df)
-  })
-  
-  output$preview <- renderTable({
-    req(input$file1)
-
-    return(head(data(), 10))
-  })
-  
   output$dataTable <- renderDataTable(
     {
-      req(input$file1)
-      DT::datatable(data())
+      DT::datatable(data)
     }
   )
   
-  output$plot <- renderPlot(
+  output$plot1 <- renderPlot(
     {
-      df <- data()
-      sub.df <- df[, c('is_gift', 'revenue')]
-      sub.df %>% ggplot(aes(y = (is_gift), x = revenue)) + geom_col()
+      sub.df <- data[, c('is_gift', 'revenue')]
+      grouped <- sub.df %>%
+        group_by(is_gift) %>%
+        summarise(rev = sum(revenue))
+      grouped %>% ggplot(aes(y = as.factor(is_gift), x = rev)) + geom_col()
+    }
+  )
+  
+  output$plot2 <- renderPlot(
+    {
+      grouped <- data %>%
+        group_by(as.Date(order_date)) %>%
+        summarise(rev = sum(revenue))
+      
+      colnames(grouped)[1] <- 'order_date'
+      grouped %>% ggplot(aes(x = order_date, y = rev)) + geom_line()
     }
   )
   
