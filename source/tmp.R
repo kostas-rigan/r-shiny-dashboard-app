@@ -53,5 +53,29 @@ ggplot(world, aes(x = long, y = lat, group = group)) +
   coord_quickmap() +
   theme_void()
 
-by.country <- group_by(data, '')
-merge(world, data, by.x = 'region', by.y = 'country')
+by.country <- group_by(data, country) %>%
+  summarise(revenue = sum(revenue),
+            cost = sum(commissions),
+            profit = sum(profit),
+            quantity = sum(quantity),
+            orders = n())
+by.country
+world.wo.antarctica <- world %>% 
+  filter(region != 'Antarctica')
+country.agg <- merge(world.wo.antarctica, by.country, by.x = 'region', by.y = 'country', all.x=T)
+country.agg
+
+ggplot(country.agg, aes(x = long, y = lat, group = group)) + 
+  geom_polygon() + 
+  coord_quickmap() +
+  theme_void()
+
+arrange(country.agg, region, group, order) %>%
+  ggplot(aes(x = long, y = lat, group = group, fill = revenue)) + 
+  geom_polygon() + 
+  coord_quickmap() +
+  theme_void() +
+  theme(legend.position = 'none')
+
+
+

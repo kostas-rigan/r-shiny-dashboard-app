@@ -9,6 +9,7 @@ library(DT)
 library(stringr)
 
 data <- read.csv('sales_data.csv')
+world <- map_data('world')
 
 ui <- navbarPage(
   'E-Commerce Dashboard App',
@@ -119,11 +120,19 @@ server <- function(input, output, session) {
   
   output$plot1 <- renderPlot(
     {
-      sub.df <- data[, c('is_gift', 'revenue')]
-      grouped <- sub.df %>%
-        group_by(is_gift) %>%
-        summarise(rev = sum(revenue))
-      grouped %>% ggplot(aes(y = as.factor(is_gift), x = rev)) + geom_col()
+      by.country <- group_by(data, country) %>%
+        summarise(revenue = sum(revenue),
+                  cost = sum(commissions),
+                  profit = sum(profit),
+                  quantity = sum(quantity),
+                  orders = n())
+      
+      country.agg <- merge(world, by.country, by.x = 'region', by.y = 'country', all.x=T)
+      country.agg <- arrange(country.agg, region, group, order)
+      ggplot(country.agg, aes(x = long, y = lat, group = group, fill = revenue)) + 
+        geom_polygon() + 
+        coord_quickmap() +
+        theme_void()
     }
   )
   
