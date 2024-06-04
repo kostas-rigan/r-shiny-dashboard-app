@@ -7,6 +7,7 @@ library(forcats)
 library(dplyr)
 library(DT)
 library(stringr)
+library(lubridate)
 
 data <- read.csv('sales_data.csv')
 world <- map_data('world')
@@ -29,9 +30,13 @@ ui <- navbarPage(
                  selectInput('publisher', 'Publisher', choices = unique(data$publisher), multiple = T),
                  selectInput('narrator', 'Narrator', choices = unique(data$narrator), multiple = T),
                  selectInput('book', 'Book', choices = unique(data$product_name), multiple = T),
-                 dateRangeInput('dates', 'Dates')
+                 dateRangeInput('dates',
+                                'Dates',
+                                start = '2020-01-01',
+                                end = '2024-06-01')
                )
              ),
+             textOutput('text'),
              
              # SECOND ROW - CARD VISUALS
              fluidRow(
@@ -69,12 +74,16 @@ ui <- navbarPage(
              fluidRow(
                page_fillable(
                  layout_columns(col_widths = c(6, 6),
-                              layout_columns(
-                                col_widths = c(12, 12),
-                                plotOutput('plot2'),
-                                plotOutput('plot3'),
-                              ),
-                              plotOutput('plot1')))
+                              
+                              plotOutput('timeline'),
+                              plotOutput('bar')
+                              ))
+             ),
+             
+             fluidRow(
+               page_fillable(
+                 plotOutput('map')
+               )
              )
 
            )
@@ -90,6 +99,12 @@ ui <- navbarPage(
 )
 
 server <- function(input, output, session) {
+  output$text <- renderText(
+    {
+      as.character(input$dates[1])
+      
+    }
+  )
   
   output$dataTable <- renderDataTable(
     {
@@ -99,28 +114,44 @@ server <- function(input, output, session) {
   
   output$revenue <- renderText(
     {
-      total_revenue <- sum(data$revenue)
+      date1 <- input$dates[1]
+      date2 <- input$dates[2]
+      filtered <- data %>%
+        dplyr::filter(order_date >= date1 & order_date <= date2)
+      total_revenue <- sum(filtered$revenue)
       euro(total_revenue)
     }
   )
   
   output$cost <- renderText(
     {
-      total_cost <- sum(data$commissions)
+      date1 <- input$dates[1]
+      date2 <- input$dates[2]
+      filtered <- data %>%
+        dplyr::filter(order_date >= date1 & order_date <= date2)
+      total_cost <- sum(filtered$commissions)
       euro(total_cost)
     }
   )
   
   output$quantity_sold <- renderText(
     {
-      total_quantity <- sum(data$quantity)
+      date1 <- input$dates[1]
+      date2 <- input$dates[2]
+      filtered <- data %>%
+        dplyr::filter(order_date >= date1 & order_date <= date2)
+      total_quantity <- sum(filtered$quantity)
       scales::label_number(big.mark = '.', decimal.mark = ',')(total_quantity)
     }
   )
   
-  output$plot1 <- renderPlot(
+  output$map <- renderPlot(
     {
-      by.country <- group_by(data, country) %>%
+      date1 <- input$dates[1]
+      date2 <- input$dates[2]
+      filtered <- data %>%
+        dplyr::filter(order_date >= date1 & order_date <= date2)
+      by.country <- group_by(filtered, country) %>%
         summarise(revenue = sum(revenue),
                   cost = sum(commissions),
                   profit = sum(profit),
@@ -137,9 +168,13 @@ server <- function(input, output, session) {
   )
   
   
-  output$plot2 <- renderPlot(
+  output$timeline <- renderPlot(
     {
-      grouped <- data %>%
+      date1 <- input$dates[1]
+      date2 <- input$dates[2]
+      filtered <- data %>%
+        dplyr::filter(order_date >= date1 & order_date <= date2)
+      grouped <- filtered %>%
         group_by(as.Date(order_date)) %>%
         summarise(rev = sum(revenue))
       
@@ -148,9 +183,13 @@ server <- function(input, output, session) {
     }
   )
   
-  output$plot3 <- renderPlot(
+  output$bar <- renderPlot(
     {
-      grouped <- data %>%
+      date1 <- input$dates[1]
+      date2 <- input$dates[2]
+      filtered <- data %>%
+        dplyr::filter(order_date >= date1 & order_date <= date2)
+      grouped <- filtered %>%
         group_by(category) %>%
         summarise(rev = sum(revenue))
     
