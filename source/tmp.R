@@ -3,7 +3,7 @@ library(dplyr)
 library(lubridate)
 library(forcats)
 
-data <- read.csv('sales_data.csv')
+data <- as_tibble(read.csv('sales_data.csv'))
 data
 colnames(data)
 
@@ -78,4 +78,39 @@ arrange(country.agg, region, group, order) %>%
   theme(legend.position = 'none')
 
 
+date_data <- data[, c('order_date', 'revenue', 'commissions', 'profit')]
+date_data$day_of_week <-wday(date_data$order_date, label = T, abbr = F)
+date_data$month <- month(as.Date(date_data$order_date), label = T, abbr = F)
+date_data$hour_of_day <- ymd_hms(date_data$order_date) %>%
+  hour()
 
+f1 <- match.fun('sum')
+f2 <- match.fun('mean')
+date_data
+grouped_date <- date_data %>%
+  group_by(hour_of_day) %>%
+  summarise(revenue = f2(revenue), n = n())
+ggplot(grouped_date, aes(x = hour_of_day, y = n)) + geom_col()
+
+data
+col = 'price'
+data[, col]
+
+match.fun('wday')
+
+group_and_summarize <- function(dataframe, by_variable, input_agg_func, metric) {
+  agg_func <- match.fun(input_agg_func)
+
+  if (input_agg_func == 'n') {
+    grouped <- group_by(dataframe, !!by_variable) %>%
+      summarise(agg_metric = agg_func())
+  } else {
+    grouped <- group_by(dataframe, !!by_variable) %>%
+      summarise(agg_metric = agg_func(!!metric))
+  }
+  
+  return (grouped)
+}
+
+data
+group_and_summarize(data, quo(country), 'sum', quo(profit))
