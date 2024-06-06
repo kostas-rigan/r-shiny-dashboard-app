@@ -25,11 +25,22 @@ ui <- navbarPage(
              fluidRow(
                layout_column_wrap(
                  width = 1/6,
-                 selectInput('category', 'Category', choices = unique(data$category), multiple = T),
-                 selectInput('is_gift', 'Is Gift', choices = unique(data$is_gift), multiple = T),
-                 selectInput('publisher', 'Publisher', choices = unique(data$publisher), multiple = T),
-                 selectInput('narrator', 'Narrator', choices = unique(data$narrator), multiple = T),
-                 selectInput('book', 'Book', choices = unique(data$product_name), multiple = T),
+                 selectInput('category', 
+                             'Category', 
+                             choices = c('All', unique(data$category)), 
+                             selected = 'All'),
+                 selectInput('is_gift', 
+                             'Is Gift', 
+                             choices = c('All', unique(data$is_gift))),
+                 selectInput('publisher', 
+                             'Publisher', 
+                             choices = c('All', unique(data$publisher))),
+                 selectInput('narrator', 
+                             'Narrator', 
+                             choices = c('All', unique(data$narrator))),
+                 selectInput('book', 
+                             'Book', 
+                             choices = c('All', unique(data$product_name))),
                  dateRangeInput('dates',
                                 'Dates',
                                 start = '2020-01-01',
@@ -99,9 +110,25 @@ ui <- navbarPage(
 )
 
 server <- function(input, output, session) {
+  
+  filtered <- reactive(
+    {
+      date1 <- input$dates[1]
+      date2 <- input$dates[2]
+      df <- data %>%
+        dplyr::filter(order_date >= date1 & order_date <= date2 &
+                        (input$category == 'All' | input$category == category) &
+                        (input$is_gift == 'All' | input$is_gift == is_gift) &
+                        (input$publisher == 'All' | input$publisher == publisher) &
+                        (input$narrator == 'All' | input$narrator == narrator) &
+                        (input$book == 'All' | input$book == product_name))
+      return(df)
+    }
+  )
+  
   output$text <- renderText(
     {
-      as.character(input$dates[1])
+      as.character(input$publisher)
       
     }
   )
@@ -114,44 +141,32 @@ server <- function(input, output, session) {
   
   output$revenue <- renderText(
     {
-      date1 <- input$dates[1]
-      date2 <- input$dates[2]
-      filtered <- data %>%
-        dplyr::filter(order_date >= date1 & order_date <= date2)
-      total_revenue <- sum(filtered$revenue)
+      df <- filtered()
+      total_revenue <- sum(df$revenue)
       euro(total_revenue)
     }
   )
   
   output$cost <- renderText(
     {
-      date1 <- input$dates[1]
-      date2 <- input$dates[2]
-      filtered <- data %>%
-        dplyr::filter(order_date >= date1 & order_date <= date2)
-      total_cost <- sum(filtered$commissions)
+      df <- filtered()
+      total_cost <- sum(df$commissions)
       euro(total_cost)
     }
   )
   
   output$quantity_sold <- renderText(
     {
-      date1 <- input$dates[1]
-      date2 <- input$dates[2]
-      filtered <- data %>%
-        dplyr::filter(order_date >= date1 & order_date <= date2)
-      total_quantity <- sum(filtered$quantity)
+      df <- filtered()
+      total_quantity <- sum(df$quantity)
       scales::label_number(big.mark = '.', decimal.mark = ',')(total_quantity)
     }
   )
   
   output$map <- renderPlot(
     {
-      date1 <- input$dates[1]
-      date2 <- input$dates[2]
-      filtered <- data %>%
-        dplyr::filter(order_date >= date1 & order_date <= date2)
-      by.country <- group_by(filtered, country) %>%
+      df <- filtered()
+      by.country <- group_by(df, country) %>%
         summarise(revenue = sum(revenue),
                   cost = sum(commissions),
                   profit = sum(profit),
@@ -170,11 +185,8 @@ server <- function(input, output, session) {
   
   output$timeline <- renderPlot(
     {
-      date1 <- input$dates[1]
-      date2 <- input$dates[2]
-      filtered <- data %>%
-        dplyr::filter(order_date >= date1 & order_date <= date2)
-      grouped <- filtered %>%
+      df <- filtered()
+      grouped <- df %>%
         group_by(as.Date(order_date)) %>%
         summarise(rev = sum(revenue))
       
@@ -185,11 +197,8 @@ server <- function(input, output, session) {
   
   output$bar <- renderPlot(
     {
-      date1 <- input$dates[1]
-      date2 <- input$dates[2]
-      filtered <- data %>%
-        dplyr::filter(order_date >= date1 & order_date <= date2)
-      grouped <- filtered %>%
+      df <- filtered()
+      grouped <- df %>%
         group_by(category) %>%
         summarise(rev = sum(revenue))
     
