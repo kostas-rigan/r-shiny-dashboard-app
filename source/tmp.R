@@ -4,6 +4,7 @@ library(lubridate)
 library(forcats)
 library(fastDummies)
 library(factoextra)
+library(stringr)
 
 data <- as_tibble(read.csv('sales_data.csv'))
 data
@@ -52,3 +53,8 @@ for (i in 1:10) {
   lst <- append(lst, i)
 }
 lst
+
+
+st <- 'category'
+str_ends(st, 'y')
+paste0(str_sub(st, start = 1, end = -2), 'ies')

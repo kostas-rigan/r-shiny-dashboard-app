@@ -26,7 +26,7 @@ card_visual <- function(card, title, color) {
   return(value_box(
     title = p(title, style = 'font-weight: bold; font-size: 24px'), 
     value = textOutput(card),
-    theme = value_box_theme(bg = color, fg = "#F5F5F5"),
+    theme = value_box_theme(bg = color, fg = "grey25"),
     showcase = bsicons::bs_icon("graph-up"), showcase_layout = "left center",
     full_screen = FALSE, fill = TRUE, height = NULL
   ))
@@ -62,6 +62,8 @@ group_and_summarize <- function(dataframe, by_variable, input_agg_func) {
   
   return (grouped)
 }
+
+metric_mapper <- list('sum' = 'Total', 'mean' = 'Avg', 'median' = 'Median', 'n' = 'Number of')
 
 sales_data <- as_tibble(read.csv('sales_data.csv'))
 world <- map_data('world')
@@ -111,10 +113,10 @@ ui <- navbarPage(
                  height = '100px',
                  fixed_width = T,
                  gap = 50,
-                 card_visual('revenue', 'Total Revenue', '#1AC765'),
-                 card_visual('cost', 'Total Cost', "#E04A4A"),
-                 card_visual('profit', 'Total Profit', "#6492EF"),
-                 card_visual('quantity_sold', 'Products Sold', "#7846EB")
+                 card_visual('revenue', 'Total Revenue', 'grey90'),
+                 card_visual('cost', 'Total Cost', "grey90"),
+                 card_visual('profit', 'Total Profit', "grey90"),
+                 card_visual('quantity_sold', 'Products Sold', "grey90")
                )
                ),
              
@@ -125,23 +127,35 @@ ui <- navbarPage(
                  layout_columns(col_widths = c(6, 6),
                               
                               layout_columns(
-                                col_widths = c(6, 6, 12),
-                                metric_select_input('timeline_metric'),
-                                aggregator_select_input('timeline_agg_func'),
-                                plotOutput('timeline')
+                                col_widths = c(12, 12),
+                                #col_widths = c(6, 6, 12),
+                                popover(
+                                  bs_icon('gear'),
+                                  metric_select_input('timeline_metric'),
+                                  aggregator_select_input('timeline_agg_func'),
+                                  textInput('period_breaks', 'Break by (period)', value = '3 months', placeholder = '3 months'),
+                                  title = 'Input controls'
+                                ),
+                                
+                                plotOutput('timeline') %>% withSpinner(color="#0dc5c1")
                               ),
                               layout_columns(
-                                col_widths = c(4, 4, 4, 12),
-                                selectInput('bar_categorical',
-                                            label = 'Categorical',
-                                            choices = list('Category' = 'category',
-                                                           'Book' = 'product_name',
-                                                           'Is Gift' = 'is_gift',
-                                                           'Publisher' = 'publisher',
-                                                           'Narrator' = 'profit')),
-                                metric_select_input('bar_metric'),
-                                aggregator_select_input('bar_agg_func'),
-                                plotOutput('bar')
+                                col_widths = c(12, 12),
+                                # col_widths = c(4, 4, 4, 12),
+                                popover(
+                                  bs_icon('gear'),
+                                  selectInput('bar_categorical',
+                                              label = 'Categorical',
+                                              choices = list('Category' = 'category',
+                                                             'Book' = 'product_name',
+                                                             'Publisher' = 'publisher',
+                                                             'Narrator' = 'profit')),
+                                  metric_select_input('bar_metric'),
+                                  aggregator_select_input('bar_agg_func'),
+                                  numericInput('number_of_items', 'Items to Show', value = 5, min = 1, max = 10, step = 1),
+                                  placement = 'right'
+                                ),
+                                plotOutput('bar') %>% withSpinner(color="#0dc5c1")
                               )
                               ))
              ),
@@ -156,7 +170,7 @@ ui <- navbarPage(
                                   checkboxInput('map_exclude_greece', 
                                                 'Exclude Greece')
                                 ),
-                                plotOutput('map'))
+                                plotOutput('map') %>% withSpinner(color="#0dc5c1"))
                )
              ),
              
@@ -174,7 +188,7 @@ ui <- navbarPage(
                                   aggregator_select_input('time_bar_agg_func')
                                 ),
                                 
-                                plotOutput('time_bar'))
+                                plotOutput('time_bar') %>% withSpinner(color="#0dc5c1"))
                 
                )
              )
@@ -206,14 +220,11 @@ ui <- navbarPage(
              mainPanel(
                tabsetPanel(
                  tabPanel('Elbow',
-                          h1('Hello'),
                           plotOutput('elbow') %>% withSpinner(color="#0dc5c1")),
                  tabPanel('Silhouette',
-                          h1('Kalispera'),
                           numericInput('k_sil', 'k', value = 2, min = 2, max = 10, step = 1),
                           plotOutput('silhouette') %>% withSpinner(color="#0dc5c1")),
                  tabPanel('Results',
-                          h1('Iaso kokla'),
                           DT::dataTableOutput('clustering'))
                )
              )
@@ -291,12 +302,25 @@ server <- function(input, output, session) {
         by.country <- filter(by.country, country != 'Greece')
       }
       
+      if (input$map_agg_func == 'n') {
+        metr <- 'Orders'
+      } else {
+        metr <- str_to_title(input$map_metric)
+      }
+      
       country.agg <- merge(world, by.country, by.x = 'region', by.y = 'country', all.x=T)
       country.agg <- arrange(country.agg, region, group, order)
       ggplot(country.agg, aes(x = long, y = lat, group = group, fill = agg_metric)) + 
         geom_polygon() + 
         coord_quickmap() +
-        theme_void()
+        labs(x = NULL,
+             y = NULL,
+             title = paste(metric_mapper[input$map_agg_func],
+                           metr,
+                           'by Country')) +
+        theme_void() +
+        theme(legend.title = element_blank(),
+              plot.title = element_text(face = 'bold', size = 17, hjust = 0.5))
     }
   )
   
@@ -311,23 +335,70 @@ server <- function(input, output, session) {
       
       by.date <- group_and_summarize(df, quo(order_date), input$timeline_agg_func)
       
+      if (input$timeline_agg_func == 'n') {
+        metr <- 'Orders'
+      } else {
+        metr <- str_to_title(input$timeline_metric)
+      }
       
-      by.date %>% ggplot(aes(x = order_date, y = agg_metric)) + geom_line()
+      by.date %>% 
+        ggplot(aes(x = order_date, y = agg_metric)) + 
+        geom_line() +
+        labs(x = NULL, 
+             y = NULL,
+             title =
+               paste(metric_mapper[input$timeline_agg_func], 
+                     metr,
+                     'per Day')
+             ) +
+        scale_x_date(date_breaks = input$period_breaks) +
+        theme_minimal() +
+        theme(plot.title = element_text(face = 'bold', size = 17, hjust = 0.5),
+              axis.text = element_text(size = 12))
     }
   )
   
   output$bar <- renderPlot(
     {
-      df <- filtered()
-      grouped <- df %>%
-        group_by(category) %>%
-        summarise(rev = sum(revenue))
-    
+      df <- filtered()[, c(input$bar_categorical, input$bar_metric)]
+      lookup = c(categorical = input$bar_categorical, metric = input$bar_metric)
+      
+      df <- rename(df, all_of(lookup))
+      grouped <- group_and_summarize(df, quo(categorical), input$bar_agg_func)
+      
       grouped <- grouped[!is.na(grouped[, 1]), ]
       
-      grouped <- head(grouped)
+      grouped <- head(grouped, input$number_of_items)
+      
+      if (input$bar_agg_func == 'n') {
+        metr <- 'Orders'
+      } else {
+        metr <- str_to_title(input$bar_metric)
+      }
+      
+      if (input$number_of_items > 1) {
+        if (str_ends(input$bar_categorical, 'y')) {
+          plural <- paste0(str_sub(input$bar_categorical, start = 1, end = -2), 'ies')
+        } else {
+          plural <- paste0(input$bar_categorical, 's')
+        }
+        separator <- paste(input$number_of_items, plural)
+      } else {
+        separator <- input$bar_categorical
+      }
     
-      ggplot(grouped, aes(x = rev, y = fct_reorder(factor(category), rev, na.rm = F))) + geom_col()
+      ggplot(grouped, aes(x = agg_metric, y = fct_reorder(factor(categorical), agg_metric, na.rm = F))) + 
+        geom_col() + 
+        labs(x = NULL,
+             y = NULL,
+             title = paste('Top', 
+                           str_to_title(separator), 
+                           'by', 
+                           metric_mapper[input$bar_agg_func], 
+                           metr)) +
+        theme_minimal() +
+        theme(plot.title = element_text(face = 'bold', size = 17, hjust = 0.5),
+              axis.text = element_text(size = 12))
     }
   )
   
@@ -343,14 +414,38 @@ server <- function(input, output, session) {
       if (input$time_bar_interval != 'hour') {
         df$interval <- interval_type_fun(df$order_date, label = T, abbr = F)
         just <- 0.5
+        
+        if (input$time_bar_interval == 'month') {
+          inteval_lbl <- 'Month'
+        } else {
+          inteval_lbl <- 'Day of Week'
+        }
+        
       } else {
         df$interval <- ymd_hms(df$order_date) %>% interval_type_fun()
         just <- 0
+        inteval_lbl <- 'Hour of Day'
       }
       
       grouped_date <- group_and_summarize(df, quo(interval), input$time_bar_agg_func)
+      
+      if (input$time_bar_agg_func == 'n') {
+        metr <- 'Orders'
+      } else {
+        metr <- str_to_title(input$time_bar_metric)
+      }
+      
       ggplot(grouped_date, aes(x = interval, y = agg_metric)) + 
-        geom_col(just = just)
+        geom_col(just = just) +
+        labs(x = NULL,
+             y = NULL,
+             title = paste(metric_mapper[input$time_bar_agg_func], 
+                           metr,
+                           'by',
+                           inteval_lbl)) +
+        theme_minimal() +
+        theme(plot.title = element_text(face = 'bold', size = 17, hjust = 0.5),
+              axis.text = element_text(size = 12))
     }
   )
   
