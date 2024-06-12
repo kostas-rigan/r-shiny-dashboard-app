@@ -22,12 +22,12 @@ euro <- scales::label_currency(
   decimal.mark = ','
 )
 
-card_visual <- function(card, title, color) {
+card_visual <- function(card, title, bgcolor, icon, fgcolor) {
   return(value_box(
     title = p(title, style = 'font-weight: bold; font-size: 24px'), 
     value = textOutput(card),
-    theme = value_box_theme(bg = color, fg = "grey25"),
-    showcase = bsicons::bs_icon("graph-up"), showcase_layout = "left center",
+    theme = value_box_theme(bg = bgcolor, fg = fgcolor),
+    showcase = bsicons::bs_icon(icon), showcase_layout = "left center",
     full_screen = FALSE, fill = TRUE, height = NULL
   ))
 }
@@ -69,39 +69,70 @@ sales_data <- as_tibble(read.csv('sales_data.csv'))
 world <- map_data('world')
 world <- filter(world, region != 'Antarctica')
 
+
 ui <- navbarPage(
-  'E-Commerce Dashboard App',
+  id = 'my-navbar',
+  header = tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "custom.css")
+  ),
   
-  
+  title = 'E-Commerce Dashboard App',
+
   tabPanel('Dashboard',
 
            fluidPage(
-             shinythemes::themeSelector(),
+             
              
              # FIRST ROW - PAGE FILTERS
              fluidRow(
                layout_column_wrap(
                  width = 1/6,
-                 selectInput('category', 
-                             'Category', 
-                             choices = c('All', unique(sales_data$category)), 
-                             selected = 'All'),
-                 selectInput('is_gift', 
-                             'Is Gift', 
-                             choices = c('All', unique(sales_data$is_gift))),
-                 selectInput('publisher', 
-                             'Publisher', 
-                             choices = c('All', unique(sales_data$publisher))),
-                 selectInput('narrator', 
-                             'Narrator', 
-                             choices = c('All', unique(sales_data$narrator))),
-                 selectInput('country', 
-                             'Country', 
-                             choices = c('All', unique(sales_data$country))),
-                 dateRangeInput('dates',
-                                'Dates',
-                                start = '2020-01-01',
-                                end = '2024-06-01')
+                 div(
+                   class = 'border rounded-2 p-2',
+                   style = 'background-color: #f8f8f8',
+                   selectInput('category', 
+                               'Category', 
+                               choices = c('All', unique(sales_data$category)), 
+                               selected = 'All')
+                 ),
+                 div(
+                   class = 'border rounded-2 p-2',
+                   style = 'background-color: #f8f8f8',
+                   selectInput('is_gift', 
+                               'Is Gift', 
+                               choices = c('All', unique(sales_data$is_gift))),
+                 ),
+                 
+                 div(
+                   class = 'border rounded-2 p-2',
+                   style = 'background-color: #f8f8f8',
+                   selectInput('publisher', 
+                               'Publisher', 
+                               choices = c('All', unique(sales_data$publisher)))
+                 ),
+                 div(
+                   class = 'border rounded-2 p-2',
+                   style = 'background-color: #f8f8f8',
+                   selectInput('narrator', 
+                               'Narrator', 
+                               choices = c('All', unique(sales_data$narrator)))
+                 ),
+                 div(
+                   class = 'border rounded-2 p-2',
+                   style = 'background-color: #f8f8f8',
+                   selectInput('country', 
+                               'Country', 
+                               choices = c('All', unique(sales_data$country)))
+                 ),
+                 div(
+                   class = 'border rounded-2 p-2',
+                   style = 'background-color: #f8f8f8',
+                   dateRangeInput('dates',
+                                  'Dates',
+                                  start = '2020-01-01',
+                                  end = '2024-06-01')
+                 )
+                 
                )
              ),
              textOutput('text'),
@@ -113,10 +144,10 @@ ui <- navbarPage(
                  height = '100px',
                  fixed_width = T,
                  gap = 50,
-                 card_visual('revenue', 'Total Revenue', 'grey90'),
-                 card_visual('cost', 'Total Cost', "grey90"),
-                 card_visual('profit', 'Total Profit', "grey90"),
-                 card_visual('quantity_sold', 'Products Sold', "grey90")
+                 card_visual('revenue', 'Total Revenue', 'grey90', 'graph-up', '#4CAF50'),
+                 card_visual('cost', 'Total Cost', "grey90", 'graph-down', '#F44336'),
+                 card_visual('profit', 'Total Profit', "grey90", 'currency-dollar', '#2196F3'),
+                 card_visual('quantity_sold', 'Products Sold', "grey90", 'box-seam', '#FF9800')
                )
                ),
              
@@ -130,6 +161,7 @@ ui <- navbarPage(
                                 class = 'border rounded',
                                 col_widths = c(12, 12),
                                 div(class = 'border-bottom  p-2',
+                                    style = 'background-color:#f8f8f8',
                                     popover(
                                       bs_icon('gear'),
                                       metric_select_input('timeline_metric'),
@@ -138,7 +170,7 @@ ui <- navbarPage(
                                       title = 'Input controls'
                                     )),
                                 div(class = 'p-1',
-                                    plotOutput('timeline') %>% withSpinner(color="#0dc5c1"))
+                                    plotOutput('timeline') %>% withSpinner(color="#5b5b5b"))
                                 
                               ),
                               layout_columns(
@@ -146,6 +178,7 @@ ui <- navbarPage(
                                 col_widths = c(12, 12),
                                 
                                 div(class = 'border-bottom  p-2',
+                                    style = 'background-color:#f8f8f8',
                                     popover(
                                     bs_icon('gear'),
                                       selectInput('bar_categorical',
@@ -161,7 +194,7 @@ ui <- navbarPage(
                                   )
                                 ),
                                 div(class = 'p-1',
-                                    plotOutput('bar') %>% withSpinner(color="#0dc5c1")
+                                    plotOutput('bar') %>% withSpinner(color="#5b5b5b")
                                 )
                               )
                               ))
@@ -172,16 +205,17 @@ ui <- navbarPage(
                  layout_columns(col_widths = c(3, 9),
                                 class = 'border rounded',
                                 div(class = 'border-end p-3 h-100',
-                                  page_fillable(
-                                    metric_select_input('map_metric'),
-                                    aggregator_select_input('map_agg_func'),
-                                    checkboxInput('map_exclude_greece', 
-                                                  'Exclude Greece')
-                                  )
+                                    style = 'background-color:#f8f8f8',
+                                    page_fillable(
+                                      metric_select_input('map_metric'),
+                                      aggregator_select_input('map_agg_func'),
+                                      checkboxInput('map_exclude_greece', 
+                                                    'Exclude Greece')
+                                    )
                                 ),
                                 div(class = 'pt-2',
                                   plotOutput('map') %>% 
-                                    withSpinner(color="#0dc5c1"))
+                                    withSpinner(color="#5b5b5b"))
                                 )
                )
              ),
@@ -190,21 +224,26 @@ ui <- navbarPage(
                page_fillable(
                  layout_columns(col_widths = c(3, 9),
                                 class = 'border rounded',
-                                div(class = 'border-end p-3 h-100',
-                                  page_fillable(
-                                    selectInput('time_bar_interval',
-                                                label = 'Interval',
-                                                choices = list('By Day of Week' = 'wday',
-                                                               'By Month' = 'month',
-                                                               'By Hour of Day' = 'hour')),
-                                    metric_select_input('time_bar_metric'),
-                                    aggregator_select_input('time_bar_agg_func')
+                                div(
+                                  style = 'background-color:#f8f8f8',
+                                  class = 'h-100 w-100',
+                                  div(class = 'border-end ps-3 pt-3',
+                                      
+                                      page_fillable(
+                                        selectInput('time_bar_interval',
+                                                    label = 'Interval',
+                                                    choices = list('By Day of Week' = 'wday',
+                                                                   'By Month' = 'month',
+                                                                   'By Hour of Day' = 'hour')),
+                                        metric_select_input('time_bar_metric'),
+                                        aggregator_select_input('time_bar_agg_func')
+                                      )
                                   )
                                 ),
                                 
                                 div(class = 'pt-2',
                                     plotOutput('time_bar') %>% 
-                                      withSpinner(color="#0dc5c1"))
+                                      withSpinner(color="#5b5b5b"))
                                 )
                                 
                 
@@ -224,24 +263,40 @@ ui <- navbarPage(
   tabPanel('Clustering',
            sidebarLayout(
              sidebarPanel(
-               h1('Parameters'),
+               class = 'h-100',
+               style = 'background-color: #f8f8f8',
+               h1('K-Means Parameters'),
                p(tags$i('Note: In this version all tests are conducted from k = 1 to 10')),
-               br(),
-               sliderInput('sample_size', 'Sample Size (%):', value = 0.5, min = 0, max = 1, step = 0.01),
+               hr(),
+               h3('General Options'),
+               p(tags$i('These options are applied to both testing and running k-means')),
                selectInput('segmentation_var', label = 'Segment:', choices = c('Customers' = 'user_id', 'Orders' = 'order_id')),
                selectInput('clustering_var', label = "By Variable:", choices = c('Category' = 'category', 'Narrator' = 'narrator')),
-               actionButton('run_tests', 'Run Test!'),
-               br(),
+               hr(),
+               h3('Testing Options'),
+               p(tags$i('These options apply only in testing k-means with Elbow and Silhouette Method')),
+               sliderInput('sample_size', 'Sample Size (%):', value = 0.5, min = 0, max = 1, step = 0.01),
+               div(
+                 class="d-flex justify-content-center",
+                 actionButton('run_tests', 'Run Test!', class = 'custom-button')
+               ),
+               hr(),
+               h3('k Options'),
+               p(tags$i('These options only affect non-testing execution of k-means')),
                numericInput('k', 'k', value = 2, min = 2, max = 10, step = 1),
-               actionButton('run_kmeans', 'Run K-Means!')
+               div(
+                 class="d-flex justify-content-center",
+                 actionButton('run_kmeans', 'Run K-Means!', class = 'custom-button')
+               )
+               
              ),
              mainPanel(
                tabsetPanel(
                  tabPanel('Elbow',
-                          plotOutput('elbow') %>% withSpinner(color="#0dc5c1")),
+                          plotOutput('elbow') %>% withSpinner(color="#5b5b5b")),
                  tabPanel('Silhouette',
                           numericInput('k_sil', 'k', value = 2, min = 2, max = 10, step = 1),
-                          plotOutput('silhouette') %>% withSpinner(color="#0dc5c1")),
+                          plotOutput('silhouette') %>% withSpinner(color="#5b5b5b")),
                  tabPanel('Results',
                           DT::dataTableOutput('clustering'))
                )
@@ -249,7 +304,6 @@ ui <- navbarPage(
            )
            
            )
-  
 )
 
 server <- function(input, output, session) {
@@ -361,7 +415,7 @@ server <- function(input, output, session) {
       
       by.date %>% 
         ggplot(aes(x = order_date, y = agg_metric)) + 
-        geom_line() +
+        geom_line(color = '#0b5394') +
         labs(x = NULL, 
              y = NULL,
              title =
@@ -405,7 +459,10 @@ server <- function(input, output, session) {
         separator <- input$bar_categorical
       }
     
-      ggplot(grouped, aes(x = agg_metric, y = fct_reorder(factor(categorical), agg_metric, na.rm = F))) + 
+      ggplot(grouped, 
+             aes(x = agg_metric, 
+                 y = fct_reorder(factor(categorical), agg_metric, na.rm = F), 
+                 fill = agg_metric)) + 
         geom_col() + 
         labs(x = NULL,
              y = NULL,
@@ -414,6 +471,9 @@ server <- function(input, output, session) {
                            'by', 
                            metric_mapper[input$bar_agg_func], 
                            metr)) +
+        scale_fill_gradient(low = '#bcbcbc', 
+                            high = '#3d85c6', 
+                            guide = NULL) +
         theme_minimal() +
         theme(plot.title = element_text(face = 'bold', size = 17, hjust = 0.5),
               axis.text = element_text(size = 12))
@@ -453,7 +513,7 @@ server <- function(input, output, session) {
         metr <- str_to_title(input$time_bar_metric)
       }
       
-      ggplot(grouped_date, aes(x = interval, y = agg_metric)) + 
+      ggplot(grouped_date, aes(x = interval, y = agg_metric, fill = agg_metric)) + 
         geom_col(just = just) +
         labs(x = NULL,
              y = NULL,
@@ -461,6 +521,7 @@ server <- function(input, output, session) {
                            metr,
                            'by',
                            inteval_lbl)) +
+        scale_fill_gradient(guide = NULL) +
         theme_minimal() +
         theme(plot.title = element_text(face = 'bold', size = 17, hjust = 0.5),
               axis.text = element_text(size = 12))
