@@ -127,35 +127,42 @@ ui <- navbarPage(
                  layout_columns(col_widths = c(6, 6),
                               
                               layout_columns(
+                                class = 'border rounded',
                                 col_widths = c(12, 12),
-                                #col_widths = c(6, 6, 12),
-                                popover(
-                                  bs_icon('gear'),
-                                  metric_select_input('timeline_metric'),
-                                  aggregator_select_input('timeline_agg_func'),
-                                  textInput('period_breaks', 'Break by (period)', value = '3 months', placeholder = '3 months'),
-                                  title = 'Input controls'
-                                ),
+                                div(class = 'border-bottom  p-2',
+                                    popover(
+                                      bs_icon('gear'),
+                                      metric_select_input('timeline_metric'),
+                                      aggregator_select_input('timeline_agg_func'),
+                                      textInput('period_breaks', 'Break by (period)', value = '3 months', placeholder = '3 months'),
+                                      title = 'Input controls'
+                                    )),
+                                div(class = 'p-1',
+                                    plotOutput('timeline') %>% withSpinner(color="#0dc5c1"))
                                 
-                                plotOutput('timeline') %>% withSpinner(color="#0dc5c1")
                               ),
                               layout_columns(
+                                class = 'border rounded',
                                 col_widths = c(12, 12),
-                                # col_widths = c(4, 4, 4, 12),
-                                popover(
-                                  bs_icon('gear'),
-                                  selectInput('bar_categorical',
-                                              label = 'Categorical',
-                                              choices = list('Category' = 'category',
-                                                             'Book' = 'product_name',
-                                                             'Publisher' = 'publisher',
-                                                             'Narrator' = 'profit')),
-                                  metric_select_input('bar_metric'),
-                                  aggregator_select_input('bar_agg_func'),
-                                  numericInput('number_of_items', 'Items to Show', value = 5, min = 1, max = 10, step = 1),
-                                  placement = 'right'
+                                
+                                div(class = 'border-bottom  p-2',
+                                    popover(
+                                    bs_icon('gear'),
+                                      selectInput('bar_categorical',
+                                                  label = 'Categorical',
+                                                  choices = list('Category' = 'category',
+                                                                 'Book' = 'product_name',
+                                                                 'Publisher' = 'publisher',
+                                                                 'Narrator' = 'profit')),
+                                      metric_select_input('bar_metric'),
+                                      aggregator_select_input('bar_agg_func'),
+                                      numericInput('number_of_items', 'Items to Show', value = 5, min = 1, max = 10, step = 1),
+                                      placement = 'right'
+                                  )
                                 ),
-                                plotOutput('bar') %>% withSpinner(color="#0dc5c1")
+                                div(class = 'p-1',
+                                    plotOutput('bar') %>% withSpinner(color="#0dc5c1")
+                                )
                               )
                               ))
              ),
@@ -163,32 +170,43 @@ ui <- navbarPage(
              fluidRow(
                page_fillable(
                  layout_columns(col_widths = c(3, 9),
-                                page_fillable(
-                                  h1('Parameters'),
-                                  metric_select_input('map_metric'),
-                                  aggregator_select_input('map_agg_func'),
-                                  checkboxInput('map_exclude_greece', 
-                                                'Exclude Greece')
+                                class = 'border rounded',
+                                div(class = 'border-end p-3 h-100',
+                                  page_fillable(
+                                    metric_select_input('map_metric'),
+                                    aggregator_select_input('map_agg_func'),
+                                    checkboxInput('map_exclude_greece', 
+                                                  'Exclude Greece')
+                                  )
                                 ),
-                                plotOutput('map') %>% withSpinner(color="#0dc5c1"))
+                                div(class = 'pt-2',
+                                  plotOutput('map') %>% 
+                                    withSpinner(color="#0dc5c1"))
+                                )
                )
              ),
              
              fluidRow(
                page_fillable(
                  layout_columns(col_widths = c(3, 9),
-                                page_fillable(
-                                  h1('Parameters'),
-                                  selectInput('time_bar_interval',
-                                              label = 'Interval',
-                                              choices = list('By Day of Week' = 'wday',
-                                                             'By Month' = 'month',
-                                                             'By Hour of Day' = 'hour')),
-                                  metric_select_input('time_bar_metric'),
-                                  aggregator_select_input('time_bar_agg_func')
+                                class = 'border rounded',
+                                div(class = 'border-end p-3 h-100',
+                                  page_fillable(
+                                    selectInput('time_bar_interval',
+                                                label = 'Interval',
+                                                choices = list('By Day of Week' = 'wday',
+                                                               'By Month' = 'month',
+                                                               'By Hour of Day' = 'hour')),
+                                    metric_select_input('time_bar_metric'),
+                                    aggregator_select_input('time_bar_agg_func')
+                                  )
                                 ),
                                 
-                                plotOutput('time_bar') %>% withSpinner(color="#0dc5c1"))
+                                div(class = 'pt-2',
+                                    plotOutput('time_bar') %>% 
+                                      withSpinner(color="#0dc5c1"))
+                                )
+                                
                 
                )
              )
