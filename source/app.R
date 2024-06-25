@@ -12,6 +12,7 @@ library(fastDummies)
 library(shinycssloaders)
 library(factoextra)
 library(cluster)
+library(maps)
 
 euro <- scales::label_currency(
   largest_with_fractional = 1000000,
@@ -390,6 +391,7 @@ server <- function(input, output, session) {
              title = paste(metric_mapper[input$map_agg_func],
                            metr,
                            'by Country')) +
+        scale_fill_gradient(low = '#bcbcbc', high = '#3d85c6', labels = scales::label_number()) +
         theme_void() +
         theme(legend.title = element_blank(),
               plot.title = element_text(face = 'bold', size = 17, hjust = 0.5))
@@ -440,6 +442,8 @@ server <- function(input, output, session) {
       
       grouped <- grouped[!is.na(grouped[, 1]), ]
       
+      grouped <- arrange(grouped, desc(agg_metric))
+
       grouped <- head(grouped, input$number_of_items)
       
       if (input$bar_agg_func == 'n') {
@@ -461,7 +465,7 @@ server <- function(input, output, session) {
     
       ggplot(grouped, 
              aes(x = agg_metric, 
-                 y = fct_reorder(factor(categorical), agg_metric, na.rm = F), 
+                 y = fct_reorder(factor(categorical), agg_metric, na.rm = T), 
                  fill = agg_metric)) + 
         geom_col() + 
         labs(x = NULL,
@@ -513,15 +517,14 @@ server <- function(input, output, session) {
         metr <- str_to_title(input$time_bar_metric)
       }
       
-      ggplot(grouped_date, aes(x = interval, y = agg_metric, fill = agg_metric)) + 
-        geom_col(just = just) +
+      ggplot(grouped_date, aes(x = interval, y = agg_metric)) + 
+        geom_col(just = just, fill = '#3d85c6') +
         labs(x = NULL,
              y = NULL,
              title = paste(metric_mapper[input$time_bar_agg_func], 
                            metr,
                            'by',
                            inteval_lbl)) +
-        scale_fill_gradient(guide = NULL) +
         theme_minimal() +
         theme(plot.title = element_text(face = 'bold', size = 17, hjust = 0.5),
               axis.text = element_text(size = 12))
